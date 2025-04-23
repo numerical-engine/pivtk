@@ -1,7 +1,16 @@
 import numpy as np
 from pivtk import geom
+import re
+import sys
 
-def read(filename:str):
+def read(filename:str)->any:
+    """VTKファイルを読み込み、ジオメトリクラスを返す
+
+    Args:
+        filename (str): ファイル名
+    Returns:
+        any: ジオメトリクラス
+    """
     with open(filename, "r") as file:
         lines = file.readlines()[3:]
     
@@ -11,8 +20,11 @@ def read(filename:str):
     else:
         raise NotImplementedError
 
-def read_UnstructuredGrid(lines:list[str]):
+def read_UnstructuredGrid(lines:list[str])->geom.unstructured_grid:
+    point_data = []
+    cell_data = []
     current_idx = 0
+    line_num = len(lines)
     point_num = int(lines[current_idx].split(" ")[1])
     current_idx += 1
 
@@ -35,5 +47,40 @@ def read_UnstructuredGrid(lines:list[str]):
         cells[i]["type"] = int(lines[current_idx])
         current_idx += 1
     
-    return geom.unstructured_grid(points, cells)
-    ###TODO read point data and cell data
+    while current_idx < line_num-1:
+        if lines[current_idx][:10] == "POINT_DATA":
+            while current_idx < line_num-1:
+                current_idx += 1
+                data_type, name = re.split("[ \t]", lines[current_idx])[:2]
+                if data_type == "SCALARS":
+                    current_idx += 2
+                    val = np.array([float(lines[current_idx+i]) for i in range(point_num)])
+                    point_data.append({"name":name, "type":"scalar", "values":val})
+                    current_idx += point_num-1
+
+                elif data_type == "VECTORS":
+                    current_idx += 1
+                    val = np.stack([np.array([float(v) for v in re.split("[ \t]", lines[current_idx+i])]) for i in range(point_num)], axis = 0)
+                    point_data.append({"name":name, "type":"vector", "values":val})
+                    current_idx += point_num - 1
+                else:
+                    break
+        else:
+            while current_idx < line_num-1:
+                current_idx += 1
+                data_type, name = re.split("[ \t]", lines[current_idx])[:2]
+                if data_type == "SCALARS":
+                    current_idx += 2
+                    val = np.array([float(lines[current_idx+i]) for i in range(point_num)])
+                    cell_data.append({"name":name, "type":"scalar", "values":val})
+                    current_idx += point_num-1
+
+                elif data_type == "VECTORS":
+                    current_idx += 1
+                    val = np.stack([np.array([float(v) for v in re.split("[ \t]", lines[current_idx+i])]) for i in range(point_num)], axis = 0)
+                    cell_data.append({"name":name, "type":"vector", "values":val})
+                    current_idx += point_num - 1
+                else:
+                    break
+    
+    return geom.unstructured_grid(points, cells, point_data, cell_data)

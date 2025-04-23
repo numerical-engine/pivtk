@@ -2,6 +2,18 @@ import numpy as np
 from copy import deepcopy
 
 class version2:
+    """VTK version2を管理する抽象クラス
+
+    geom.pyの各クラスに継承される
+
+    Attributes:
+        geom_type (str): ジオメトリタイプ。"UNSTRUCTURED_GRID"など文字列はVTKフォーマットに従う。
+        point_data (list[dict]): ポイントデータのリスト。各要素はdictで、key及びvaluesは以下の通り。
+            "name" (str): ポイントデータ名
+            "values" (np.ndarray): 数値データ。スカラーの場合shapeは(N, )、スカラーの場合は(N, D)。
+            "type" (str): "scalar"もしくは"vector"
+        cell_data (list[str]): セルデータのリスト。各要素はdictで、key及びvaluesは同上。
+    """
     geom_type = None
     def __init__(self, point_data:list[dict] = [], cell_data:list[dict] = [])->None:
         self.point_data = deepcopy(point_data)
